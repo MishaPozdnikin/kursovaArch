@@ -1,10 +1,10 @@
 /* Assembler for LC */
-
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #define MAXLINELENGTH 1000
-#define MAXNUMLABELS 67108864
+#define MAXNUMLABELS 108864
 #define MAXLABELLENGTH 7 /* includes the null character termination */
 
 #define ADD 0
@@ -28,7 +28,7 @@
 #define CLC   18
 
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
-int translateSymbol(char labelArray[MAXNUMLABELS][MAXLABELLENGTH], int labelAddress[MAXNUMLABELS], int, char *);
+int translateSymbol(char **labelArray, int *labelAddress, int, char *);
 int isNumber(char *);
 void testRegArg(char *);
 void testAddrArg(char *);
@@ -46,8 +46,12 @@ main(int argc, char *argv[])
     int num;
     int addressField;
 
-    char labelArray[MAXNUMLABELS][MAXLABELLENGTH];
-    int labelAddress[MAXNUMLABELS];
+	char **labelArray = (char**)malloc(MAXNUMLABELS);
+	for (int i = 0; i < 10000; i++)
+	{
+		labelArray[i] = (char*)malloc(MAXLABELLENGTH);
+	}
+    int *labelAddress = (int*)malloc(sizeof(labelAddress) * MAXNUMLABELS);
 
     if (argc != 3) {
 	printf("error: usage: %s <assembly-code-file> <machine-code-file>\n",
@@ -312,8 +316,7 @@ readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0,
 }
 
 int
-translateSymbol(char labelArray[MAXNUMLABELS][MAXLABELLENGTH],
-    int labelAddress[MAXNUMLABELS], int numLabels, char *symbol)
+translateSymbol(char **labelArray, int *labelAddress, int numLabels, char *symbol)
 {
     int i;
 
