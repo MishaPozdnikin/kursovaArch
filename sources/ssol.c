@@ -1,7 +1,7 @@
 /*
  * Instruction-level simulator for the LC
  */
-
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,14 +10,14 @@
 #define NUMREGS 256 /* number of machine registers */
 #define MAXLINELENGTH 1000
 
-#define ADD 0
-#define NAND 1
-#define LW 2
-#define SW 3
-#define BEQ 4
-#define JALR 5
-#define HALT 6
-#define MUL 7
+#define ADD   0
+#define NAND  1
+#define LW    2
+#define SW    3
+#define BEQ   4
+#define JALR  5
+#define HALT  6
+#define MUL   7
 #define XADD  8
 #define SUB   9
 #define XIMUL 10
@@ -32,7 +32,7 @@
 
 typedef struct stateStruct {
     int pc;
-    int mem[NUMMEMORY];
+    int *mem;
     int reg[NUMREGS];
     int numMemory;
 	int CF;
@@ -57,6 +57,8 @@ main(int argc, char *argv[])
 		exit(1);
     }
 
+	state.mem = (int*)malloc(sizeof(int*) * NUMMEMORY);
+
     /* initialize memories and registers */
     for (i=0; i<NUMMEMORY; i++) {
 		state.mem[i] = 0;
@@ -80,7 +82,7 @@ main(int argc, char *argv[])
 		exit(1);
     }
 
-    for (state.numMemory=0; fgets(line, MAXLINELENGTH, filePtr) != NULL;
+ for (state.numMemory=0; fgets(line, MAXLINELENGTH, filePtr) != NULL;
 		state.numMemory++) {
 		if (state.numMemory >= NUMMEMORY) {
 			printf("exceeded memory size\n");
@@ -125,7 +127,7 @@ run(stateType state)
 	arg1 = (state.mem[state.pc] >> 16) & 0x7;
 	arg2 = state.mem[state.pc] & 0x7; /* only for add, nand */
 
-	addressField = convertNum(state.mem[state.pc] & 0xFFFFFFFF); /* for beq,
+	addressField = convertNum(state.mem[state.pc] & 0xFFFF); /* for beq,
 								    lw, sw */
 	state.pc++;
 	if (opcode == ADD) {
@@ -205,7 +207,7 @@ run(stateType state)
 	  for (i = 0; i < state.reg[arg1]; i++) {
 	 	temp = temp >> 1;
 	  }
-	  temp = temp & 0x000000001;
+	  temp = temp & 0x00000000000001;
 	  state.CF = temp;
 	} else if (opcode == CMP) {
       if (state.reg[arg0] < state.reg[arg1]) {
@@ -220,9 +222,9 @@ run(stateType state)
 		  		state.CF = 0;
 				state.SF = 0;
 				state.ZF = 0;
+	}
 	} else if (opcode == CLC) {
 		state.CF = 0;
-	}
 	} else {
 	    printf("error: illegal opcode 0x%x\n", opcode);
 	    exit(1);
@@ -245,6 +247,9 @@ printState(stateType *statePtr)
 	for (i=0; i<NUMREGS; i++) {
 	    printf("\t\treg[ %d ] %d\n", i, statePtr->reg[i]);
 	}
+	printf("CF: %d\n", statePtr->CF);
+	printf("SF: %d\n", statePtr->SF);
+	printf("ZF: %d\n", statePtr->ZF);
     printf("end state\n");
 }
 

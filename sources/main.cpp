@@ -1,9 +1,14 @@
+#define MAXNUMLABELS 108864
 #include <iostream>
 
 int main()
 {
-    int a = -7;
-    int b = 6;
-    int check =  (unsigned)a > (unsigned)b;
-    std::cout << check;
+    char **labelArray = (char**)malloc(MAXNUMLABELS);
+	for (long long int i = 0; i < MAXNUMLABELS; i++)
+	{
+		labelArray[i] = (char*)malloc(7);
+	}
+
+    free(*labelArray);
+    free(labelArray);
 }
