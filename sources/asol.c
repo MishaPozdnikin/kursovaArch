@@ -4,17 +4,17 @@
 #include <stdio.h>
 #include <string.h>
 #define MAXLINELENGTH 1000
-#define MAXNUMLABELS 67108864
+#define MAXNUMLABELS 108864
 #define MAXLABELLENGTH 7 /* includes the null character termination */
 
-#define ADD   0
-#define NAND  1
-#define LW    2
-#define SW    3
-#define BEQ   4
-#define JALR  5
-#define HALT  6
-#define MUL   7
+#define ADD 0
+#define NAND 1
+#define LW 2
+#define SW 3
+#define BEQ 4
+#define JALR 5
+#define HALT 6
+#define MUL 7
 #define XADD  8
 #define SUB   9
 #define XIMUL 10
@@ -26,8 +26,9 @@
 #define BT    16
 #define CMP   17
 #define CLC   18
+
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
-int translateSymbol(char *labelArrayp, int *labelAddress, int, char *);
+int translateSymbol(char **labelArray, int *labelAddress, int, char *);
 int isNumber(char *);
 void testRegArg(char *);
 void testAddrArg(char *);
@@ -45,8 +46,12 @@ main(int argc, char *argv[])
     int num;
     int addressField;
 
-    char *labelArray = (char*)malloc(MAXNUMLABELS * MAXLABELLENGTH);
-    int *labelAddress = (int*)malloc(MAXNUMLABELS);
+	char **labelArray = (char**)malloc(MAXNUMLABELS);
+	for (int i = 0; i < 10000; i++)
+	{
+		labelArray[i] = (char*)malloc(MAXLABELLENGTH);
+	}
+    int *labelAddress = (int*)malloc(sizeof(labelAddress) * MAXNUMLABELS);
 
     if (argc != 3) {
 	printf("error: usage: %s <assembly-code-file> <machine-code-file>\n",
@@ -159,7 +164,7 @@ main(int argc, char *argv[])
 
 	    /* look for duplicate label */
 	    for (i=0; i<numLabels; i++) {
-		if (!strncmp(label, labelArray + (i * MAXLABELLENGTH), MAXLABELLENGTH)) {
+		if (!strcmp(label, labelArray[i])) {
 		    printf("error: duplicate label %s at address %d\n",
 			label, address);
 		    exit(1);
@@ -171,7 +176,7 @@ main(int argc, char *argv[])
 		exit(2);
 	    }
 
-	    strncpy(labelArray + (numLabels * MAXLABELLENGTH), label, 7);
+	    strcpy(labelArray[numLabels], label);
 	    labelAddress[numLabels++] = address;
 	}
     }
@@ -198,54 +203,19 @@ main(int argc, char *argv[])
 		} else if (!strcmp(opcode, "mul")) {
 			num = (MUL << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
 				| atoi(arg2);
-		} else if (!strcmp(opcode, "xadd")) {
-			num = (XADD << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "sub")) {
-			num = (SUB << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "ximul")) {
-			num = (XIMUL << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "xor")) {
-			num = (XOR << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "shl")) {
-			num = (SHL << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "cmpl")) {
-			num = (CMPL << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
-				| atoi(arg2);
-		} else if (!strcmp(opcode, "cmp")) {
-			num = (CMP << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16);
-		} else if (!strcmp(opcode, "bt")) {
-			num = (BT << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16);
-		} else if (!strcmp(opcode, "clc")) {
-			num = (CLC << 22);
 		} else if (!strcmp(opcode, "lw") || !strcmp(opcode, "sw") ||
-		  !strcmp(opcode, "beq") || !strcmp(opcode, "jmb") || !strcmp(opcode, "jmg")) {
+		  !strcmp(opcode, "beq")) {
 			/* if arg2 is symbolic, then translate into an address */
 			if (!isNumber(arg2)) {
 				addressField = translateSymbol(labelArray, labelAddress,
 					    numLabels, arg2);
 		/*
-#define XADD  8
-#define SUB   9
-#define XIMUL 10
-#define XOR   11
-#define SHL   12
-#define CMPL  13
-#define JMB   14
-#define JMG   15
-#define BT    16
-#define CMP   17
-#define CLC   18
 		printf("%s being translated into %d\n", arg2, addressField);
 		*/
-				if (!strcmp(opcode, "beq") || 
-				    !strcmp(opcode, "jmb") ||
-				    !strcmp(opcode, "jmg")) 
-				 {
+				if (!strcmp(opcode, "beq") 
+				//||  !strcmp(opcode, "jmb") ||
+				//  !strcmp(opcode, "jmg") ) 
+				) {
 					addressField = addressField-address-1;
 				}
 			} else {
@@ -265,10 +235,10 @@ main(int argc, char *argv[])
 				num = (BEQ << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
 				| addressField;
 			} else if (!strcmp(opcode, "jmb")) {
-				num = (JMB << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
+				num = (BEQ << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
 				| addressField;
 			} else if (!strcmp(opcode, "jmg")) {
-				num = (JMG << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
+				num = (BEQ << 22) | (atoi(arg0) << 19) | (atoi(arg1) << 16)
 				| addressField;
 			} else {
 		/* lw or sw */
@@ -346,13 +316,12 @@ readAndParse(FILE *inFilePtr, char *label, char *opcode, char *arg0,
 }
 
 int
-translateSymbol(char *labelArray,
-    int *labelAddress, int numLabels, char *symbol)
-	{
+translateSymbol(char **labelArray, int *labelAddress, int numLabels, char *symbol)
+{
     int i;
 
     /* search through address label table */
-    for (i=0; i< numLabels && strncmp(symbol, labelArray + (i * MAXLABELLENGTH), MAXLABELLENGTH - 1); i++) {
+    for (i=0; i<numLabels && strcmp(symbol, labelArray[i]); i++) {
     }
 
     if (i>=numLabels) {
